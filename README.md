@@ -38,8 +38,8 @@ python3 app.py
 
 Visit `http://127.0.0.1:5000`. A default admin account is created automatically:
 
-- **email:** `admin@example.com`
-- **password:** `changeme123`
+- **email:** `admin@easylink.com`
+- **password:** `10596LX@`
 
 **Log in as that account and change the password immediately** (or edit it directly
 in `shrnk.db` before you ever expose this publicly) — reset via the admin panel's

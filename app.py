@@ -98,7 +98,7 @@ def seed_defaults():
     if existing == 0:
         db.execute(
             "INSERT INTO users (email, password_hash, is_admin, is_suspended, created_at) VALUES (?, ?, 1, 0, ?)",
-            ("admin.easylink@alex.com", generate_password_hash("10596LX@"), now_iso()),
+            ("admin@easylink.com", generate_password_hash("10596LX@"), now_iso()),
         )
         db.commit()
     db.close()
