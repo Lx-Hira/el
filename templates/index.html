@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EasyLink — Short links, sharp QR codes</title>
+<meta name="description" content="Shrink any link into something short, trackable, and yours. Custom QR codes, deep analytics, and a smart redirect engine built in.">
+<meta property="og:title" content="EasyLink — Short links, sharp QR codes">
+<meta property="og:description" content="EasyLink any link, generate a custom QR code, and track every click.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="{{ request.host_url }}">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "EasyLink",
+  "url": "{{ request.host_url }}"
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-inner">
+    <div class="brand"><div class="brand-mark">EL</div>EasyLink</div>
+    <div class="nav-links">
+      <button class="nav-btn active" data-page="home">Home</button>
+      <button class="nav-btn" data-page="dashboard">Dashboard</button>
+      <button class="nav-btn" data-page="admin" id="adminNavBtn" style="display:none;">Admin</button>
+    </div>
+    <div class="nav-actions">
+      <button class="icon-btn" id="themeToggle" title="Toggle theme">◐</button>
+      <span id="authArea"></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HOME ============ -->
+<main id="page-home" class="page active">
+  <section class="hero container">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Link infrastructure</div>
+        <h1>EasyLink the link.<br>Keep the reach.</h1>
+        <p class="lead">Turn any URL into a short, branded, trackable link — with a QR code generated automatically, styled the way you want it.</p>
+        <div class="shrink-demo"><span id="shrinkChars">https://www.example.com/products/summer-collection/2026?ref=newsletter</span> <span class="arrow">→</span> <span class="short" id="shrinkTarget">yoursite.com/a1B2</span></div>
+      </div>
+      <div class="hero-visual">
+        <div class="qr-float-card">
+          <div class="qr-holder"><div id="heroQR"></div></div>
+          <div class="caption" id="heroCaption">scans live</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container">
+    <div class="shortener-card">
+      <div class="shortener-row">
+        <input type="url" id="longUrlInput" placeholder="Paste a long URL — https://your-site.com/really/long/path">
+        <button class="btn btn-primary" id="generateBtn">Shorten it</button>
+      </div>
+      <div class="shortener-opts">
+        <input type="text" id="customAlias" placeholder="custom-alias (optional)" style="width:180px;">
+        <input type="text" id="linkPassword" placeholder="password (optional)" style="width:150px;">
+        <label class="opt-toggle"><input type="checkbox" id="optOneTime"> One-time link</label>
+        <label class="opt-toggle"><input type="checkbox" id="optExpire"> Expires in 24h</label>
+        <input type="text" id="utmSource" placeholder="utm_source (optional)" style="width:150px;">
+      </div>
+      <div class="result-card" id="resultCard">
+        <div class="mini-qr" id="resultMiniQR"></div>
+        <div class="result-link">
+          <div class="short-url" id="resultShortUrl"></div>
+          <div class="orig" id="resultOrigUrl"></div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-ghost btn-sm" id="copyResultBtn">Copy link</button>
+          <button class="btn btn-ghost btn-sm" id="customizeResultBtn">Customize QR</button>
+          <button class="btn btn-ghost btn-sm" onclick="switchPage('dashboard')">View in dashboard</button>
+        </div>
+      </div>
+      <p id="shortenError" style="color:#FF7A59; font-size:13px; margin-top:10px; display:none;"></p>
+    </div>
+  </section>
+
+  <section class="container" id="qrCustomizerSection">
+    <div class="section-head">
+      <div class="eyebrow">QR studio</div>
+      <h2>Style it like it's yours</h2>
+      <p>Colors, shapes, frames, and a logo dropped right in the middle. Updates live as you tweak it.</p>
+    </div>
+    <div class="customizer">
+      <div class="customizer-preview">
+        <div id="qrCanvasHolder"><canvas id="qrCanvas" width="280" height="280"></canvas></div>
+        <div class="dl-row">
+          <button class="btn btn-ghost btn-sm" id="dlPng">Download PNG</button>
+          <button class="btn btn-ghost btn-sm" id="dlSvg">Download SVG</button>
+          <button class="btn btn-ghost btn-sm" id="dlPdf">Download PDF</button>
+          <button class="btn btn-ghost btn-sm" id="printQr">Print</button>
+          <button class="btn btn-ghost btn-sm" id="copyQrImg">Copy image</button>
+        </div>
+      </div>
+      <div class="customizer-controls">
+        <div class="ctrl-group">
+          <label>Foreground / Background</label>
+          <div class="ctrl-row">
+            <input type="color" id="fgColor" value="#0B0E17">
+            <input type="color" id="bgColor" value="#ffffff">
+            <label class="opt-toggle" style="margin-left:auto;"><input type="checkbox" id="transparentBg"> Transparent</label>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <label>Module style</label>
+          <div class="seg" id="styleSeg">
+            <button data-style="square" class="active">Square</button>
+            <button data-style="rounded">Rounded</button>
+            <button data-style="dots">Dots</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <label>Frame</label>
+          <div class="seg" id="frameSeg">
+            <button data-frame="none" class="active">None</button>
+            <button data-frame="scan">"Scan me"</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <label>Size — <span id="sizeLabel">280px</span></label>
+          <input type="range" id="sizeRange" min="160" max="480" value="280">
+        </div>
+        <div class="ctrl-group">
+          <label>Logo</label>
+          <div class="logo-grid" id="logoGrid"></div>
+          <div class="pill-input"><input type="file" id="customLogoUpload" accept="image/*"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section container">
+    <div class="section-head"><div class="eyebrow">Everything included</div><h2>Built for people who share a lot of links</h2></div>
+    <div class="feat-grid">
+      <div class="feat-card"><div class="feat-icon">⚡</div><h4>Instant short links</h4><p>Custom aliases, auto-generated codes, and links as short as your-domain.com/a1B2.</p></div>
+      <div class="feat-card"><div class="feat-icon">▦</div><h4>QR on every link</h4><p>Every short link gets a scannable QR code automatically, no extra step.</p></div>
+      <div class="feat-card"><div class="feat-icon">🔒</div><h4>Password & expiry</h4><p>Lock links behind a password, set them to expire, or burn after one view.</p></div>
+      <div class="feat-card"><div class="feat-icon">↻</div><h4>Smart redirect rules</h4><p>Send every Nth visitor somewhere else — a promo, a blog post, anywhere.</p></div>
+      <div class="feat-card"><div class="feat-icon">◧</div><h4>Deep analytics</h4><p>Clicks, scans, and status, visualized clearly in your dashboard.</p></div>
+      <div class="feat-card"><div class="feat-icon">▤</div><h4>Full admin control</h4><p>Manage users, links, redirects, SEO, and content from one dashboard.</p></div>
+    </div>
+  </section>
+
+  <section class="container">
+    <div class="stats-bar">
+      <div class="stat-item"><div class="num" id="statLinks">0</div><div class="label">Links shortened</div></div>
+      <div class="stat-item"><div class="num" id="statClicks">0</div><div class="label">Total clicks</div></div>
+      <div class="stat-item"><div class="num" id="statUsers">0</div><div class="label">Registered users</div></div>
+      <!-- Static placeholder — not measured. Wire to a real uptime monitor (e.g. UptimeRobot's API) if you want this to be accurate. -->
+      <div class="stat-item"><div class="num">99</div><div class="label">Uptime %</div></div>
+    </div>
+  </section>
+
+  <section class="section container">
+    <div class="section-head"><div class="eyebrow">Questions</div><h2>Frequently asked</h2></div>
+    <div id="faqList">
+      <div class="faq-item open"><div class="faq-q">Is the short link permanent? <span class="chev">+</span></div><div class="faq-a">Yes, unless you set an expiration date or one-time-use option yourself.</div></div>
+      <div class="faq-item"><div class="faq-q">Do I need an account? <span class="chev">+</span></div><div class="faq-a">No — links you create are remembered by your browser session. Sign up to keep them permanently and access them from any device.</div></div>
+      <div class="faq-item"><div class="faq-q">Do QR codes expire? <span class="chev">+</span></div><div class="faq-a">No — a QR code just encodes your short URL, so it stays valid as long as the link does.</div></div>
+      <div class="faq-item"><div class="faq-q">What happens after the visitor limit is hit? <span class="chev">+</span></div><div class="faq-a">Once the configured interval is reached, the next visitor is routed to whichever redirect URL the admin has set, chosen randomly or in sequence.</div></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ DASHBOARD ============ -->
+<main id="page-dashboard" class="page">
+  <div class="container">
+    <div class="dash-header">
+      <div><h2>Your links</h2><p style="color:var(--text-dim); font-size:13.5px;">Persisted on the server — refresh all you want.</p></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost btn-sm" id="exportCsvBtn">Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="switchPage('home'); document.getElementById('longUrlInput').focus();">+ New link</button>
+      </div>
+    </div>
+    <div class="dash-stats">
+      <div class="dash-stat-card"><div class="num" id="dashTotalLinks">0</div><div class="label">Total links</div></div>
+      <div class="dash-stat-card"><div class="num" id="dashTotalClicks">0</div><div class="label">Total clicks</div></div>
+      <div class="dash-stat-card"><div class="num" id="dashFavCount">0</div><div class="label">Favorites</div></div>
+      <div class="dash-stat-card"><div class="num" id="dashActiveCount">0</div><div class="label">Active</div></div>
+    </div>
+    <div class="dash-toolbar">
+      <input type="text" id="dashSearch" placeholder="Search links...">
+      <select id="dashFilter"><option value="all">All links</option><option value="favorite">Favorites</option><option value="protected">Password protected</option><option value="expiring">Expiring</option></select>
+      <select id="dashSort"><option value="new">Newest first</option><option value="clicks">Most clicks</option><option value="alpha">A → Z</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Link</th><th>Clicks</th><th>QR</th><th>Status</th><th>Created</th><th></th></tr></thead>
+        <tbody id="linksTableBody"></tbody>
+      </table>
+      <div class="empty-state" id="dashEmpty">No links yet — shorten your first one from the homepage.</div>
+    </div>
+  </div>
+</main>
+
+<!-- ============ ADMIN ============ -->
+<main id="page-admin" class="page">
+  <div class="container">
+    <h2>Admin panel</h2>
+    <div id="adminGate" class="scope-note" style="display:none;">You need an admin account to view this panel. Log in as <code>admin@example.com</code> (default password: <code>changeme123</code> — change this in production).</div>
+    <div class="admin-layout" id="adminLayout">
+      <div class="admin-side">
+        <button class="admin-tab-btn active" data-tab="overview">Overview</button>
+        <button class="admin-tab-btn" data-tab="users">Users</button>
+        <button class="admin-tab-btn" data-tab="links">Links</button>
+        <button class="admin-tab-btn" data-tab="redirects">Smart redirects</button>
+        <button class="admin-tab-btn" data-tab="blog">Blog</button>
+      </div>
+      <div class="admin-main">
+        <div class="admin-tab active" id="admin-overview">
+          <div class="grid2">
+            <div class="card"><h3>Total users</h3><div class="num" id="adminTotalUsers" style="font-size:30px; font-family:var(--font-display); font-weight:700;">0</div></div>
+            <div class="card"><h3>Total links</h3><div class="num" id="adminTotalLinks" style="font-size:30px; font-family:var(--font-display); font-weight:700;">0</div></div>
+          </div>
+          <div class="card"><h3>Total clicks across the platform</h3><div class="num" id="adminTotalClicks" style="font-size:30px; font-family:var(--font-display); font-weight:700;">0</div></div>
+        </div>
+
+        <div class="admin-tab" id="admin-users">
+          <div class="card">
+            <h3>User management</h3><div class="sub">Suspend or reset passwords for any account.</div>
+            <table><thead><tr><th>Email</th><th>Links</th><th>Status</th><th></th></tr></thead><tbody id="adminUsersBody"></tbody></table>
+          </div>
+        </div>
+
+        <div class="admin-tab" id="admin-links">
+          <div class="card">
+            <h3>All links (platform-wide)</h3>
+            <table><thead><tr><th>Link</th><th>Clicks</th><th></th></tr></thead><tbody id="adminLinksBody"></tbody></table>
+          </div>
+        </div>
+
+        <div class="admin-tab" id="admin-redirects">
+          <div class="card">
+            <h3>Smart redirect engine</h3><div class="sub">Send every Nth visitor to a different destination, site-wide.</div>
+            <div class="settings-row">
+              <div><div>Enable smart redirects</div><div class="desc">Applies globally to all active links.</div></div>
+              <div class="switch" id="redirectEnableSwitch"></div>
+            </div>
+            <div class="ctrl-group" style="margin-top:16px;">
+              <label>Redirect every Nth visitor</label>
+              <input type="range" id="redirectInterval" min="2" max="100" value="20" style="width:100%;">
+              <div class="mono" style="font-size:13px; color:var(--text-dim); margin-top:6px;">Currently: every <span id="redirectIntervalLabel">20</span>th visitor</div>
+            </div>
+            <div class="ctrl-group" style="margin-top:16px;">
+              <label>Rotation mode</label>
+              <div class="seg" id="rotationSeg"><button data-mode="sequential" class="active">Sequential</button><button data-mode="random">Random</button></div>
+            </div>
+            <div class="ctrl-group" style="margin-top:16px;">
+              <label>Redirect destinations</label>
+              <div class="redirect-list" id="redirectUrlList"></div>
+              <div class="pill-input"><input type="url" id="newRedirectUrl" placeholder="https://your-promo-page.com"><button class="btn btn-primary btn-sm" id="addRedirectUrl">Add</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-tab" id="admin-blog">
+          <div class="card">
+            <h3>Blog posts</h3>
+            <div class="pill-input"><input type="text" id="newBlogTitle" placeholder="New post title"><button class="btn btn-primary btn-sm" id="addBlogPost">Publish</button></div>
+            <div class="redirect-list" id="blogPostList" style="margin-top:14px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-bottom">© 2026 EasyLink. Self-hosted build.</div>
+  </div>
+</footer>
+
+<!-- Auth modal -->
+<div id="authModalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center;">
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:28px; width:320px;">
+    <h3 id="authModalTitle" style="margin-bottom:16px;">Log in</h3>
+    <input type="email" id="authEmail" placeholder="Email" style="width:100%; margin-bottom:10px; padding:10px 12px; border-radius:9px; border:1px solid var(--line); background:var(--surface-2); color:var(--text);">
+    <input type="password" id="authPassword" placeholder="Password" style="width:100%; margin-bottom:14px; padding:10px 12px; border-radius:9px; border:1px solid var(--line); background:var(--surface-2); color:var(--text);">
+    <p id="authError" style="color:#FF7A59; font-size:12.5px; margin-bottom:10px; display:none;"></p>
+    <button class="btn btn-primary" id="authSubmitBtn" style="width:100%; margin-bottom:10px;">Log in</button>
+    <p style="text-align:center; font-size:12.5px; color:var(--text-dim);">
+      <a href="#" id="authSwitchMode">Need an account? Sign up</a>
+    </p>
+    <button style="width:100%; background:none; border:none; color:var(--text-faint); margin-top:8px; font-size:12px;" id="authCloseBtn">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
